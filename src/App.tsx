@@ -237,15 +237,13 @@ const Navbar = ({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => v
 const Hero = () => {
   return (
     <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/90 via-brand-bg/40 to-brand-bg z-10" />
-        <img 
-          src="/assets/background.png" alt="Escola em meio a cidade" 
-          className="w-full h-full object-cover scale-105 animate-slow-zoom"
-          referrerPolicy="no-referrer"
-        />
+     <div className="absolute inset-0 z-0">
+       <img src="/assets/background.png" alt="Escola em meio a cidade" className="w-full h-full object-cover scale-105 animate-slow-zoom"
+        referrerPolicy="no-referrer"/>
+       <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/90 via-brand-bg/40 to-brand-bg z-10" />
       </div>
     </section>
+
   );
 };
 
