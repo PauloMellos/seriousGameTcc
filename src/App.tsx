@@ -12,14 +12,18 @@ import {
   Sun, 
   Moon, 
   ChevronDown, 
+  ChevronLeft,
   ChevronRight,
   ArrowRight,
   CheckCircle2,
+  XCircle,
   Instagram,
   Linkedin,
   Twitter,
   Mail,
   Phone,
+  PlayIcon,
+  RotateCcw,
   PlayCircle,
   Download,
   BarChart3,
@@ -60,7 +64,7 @@ interface GamePhase {
   explanation?: string;
   options?: { id: string; name: string; isCorrect?: boolean; icon?: React.ReactNode }[];
   targetIcon?: React.ReactNode;
-  hotspot?: { x: number; y: number; label?: string };
+  hotspot?: { x: number; y: number; label?: string; width?: number; height?: number; hideVisual?: boolean };
 }
 
 interface Story {
@@ -132,7 +136,6 @@ const Navbar = ({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => v
   const navLinks = [
     { name: 'Início', href: '#home' },
     { name: 'Jogos Educativos', href: '#games' },
-    { name: 'Tutoriais', href: '#tutorials' },
     { name: 'Contato', href: '#contact' },
   ];
 
@@ -236,14 +239,12 @@ const Navbar = ({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => v
 
 const Hero = () => {
   return (
-    <section id="home" className="relative h-96 w-full flex items-center justify-center overflow-hidden">
-  <div className="absolute inset-0 z-0">
-    <img src="/assets/background.png" alt="Escola em meio a cidade" className="w-full h-full object-cover"
-      referrerPolicy="no-referrer"/>
-    <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/90 via-brand-bg/40 to-brand-bg z-10" />
-  </div>
-</section>
-
+    <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+         <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/90 via-brand-bg/40 to-brand-bg z-10" />
+         <img src="/assets/background.png" alt="Porta de Saída de Emergência Sinalizada" className="w-full h-full object-cover scale-105 animate-slow-zoom" referrerPolicy="no-referrer"/>
+        </div>
+    </section>
   );
 };
 
@@ -301,13 +302,14 @@ const SafetyTips = () => {
 // --- Fire Safety Master Game (Comprehensive Training) ---
 // --- Fire Safety Master Game (Escape Room: SOS Scape Point) ---
 const FireSafetyMasterGame = () => {
-  const [gameState, setGameState] = useState<'start' | 'selection' | 'playing' | 'feedback' | 'finished' | 'gameover'>('start');
+  const [gameState, setGameState] = useState<'start' | 'selection' | 'playing' | 'feedback' | 'finished' | 'gameover' | 'show'>('start');
   const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(35);
+  const [timeLeft, setTimeLeft] = useState(40);
   const [feedback, setFeedback] = useState<{ correct: boolean; message: string; explanation: string } | null>(null);
   const [storiesCompleted, setStoriesCompleted] = useState<string[]>([]);
+  const [gameExplanations, setGameExplanations] = useState<{title: string, explanation: string}[]>([]);
   const [finalCodeInput, setFinalCodeInput] = useState<string[]>(['', '', '', '']);
   const [timerActive, setTimerActive] = useState(false);
   const [showStoryDetail, setShowStoryDetail] = useState<string | null>(null);
@@ -335,10 +337,22 @@ const FireSafetyMasterGame = () => {
   // Audio effect for alarm
   useEffect(() => {
     if (!alarmAudio.current) {
-      // High-quality piercing electronic fire alarm
-      alarmAudio.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      // Tenta carregar o arquivo local alarme.mp3. Caso não exista, usa o link do Mixkit.
+      const localAlarm = '/assets/alarme.mp3';
+      alarmAudio.current = new Audio(localAlarm);
+      
+      // Fallback para o link público se o local falhar (onError do elemento de áudio)
+      alarmAudio.current.addEventListener('error', () => {
+        if (alarmAudio.current) {
+          alarmAudio.current.src = 'https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3';
+          if (timerActive && gameState === 'playing' && !isMuted) {
+             alarmAudio.current.play().catch(e => console.log("Alarm fallback audio blocked", e));
+          }
+        }
+      }, { once: true });
+
       alarmAudio.current.loop = true;
-      alarmAudio.current.volume = 0.5;
+      alarmAudio.current.volume = 0.3;
     }
 
     if (timerActive && gameState === 'playing' && !isMuted) {
@@ -354,92 +368,111 @@ const FireSafetyMasterGame = () => {
     };
   }, [timerActive, gameState, isMuted]);
 
-  // Audio effect for explosion on Game Over
+  // Audio effect for explosion on Game Over or Failure (< 70%)
   useEffect(() => {
-    if (gameState === 'gameover' && !isMuted) {
+    const shouldPlayExplosion = () => {
+      if (isMuted) return false;
+      if (gameState === 'gameover') return true;
+      if (gameState === 'finished') {
+        const currentStoryForMax = stories.find(s => s.id === currentStoryId);
+        const maxScore = currentStoryForMax?.phases.reduce((acc: number, phase) => {
+          if (phase.type === 'enigma') return acc + 25;
+          if (phase.type === 'ppe' || phase.type === 'map') return acc + 50;
+          return acc;
+        }, 0) || 100;
+        return (score / maxScore) * 100 < 70;
+      }
+      return false;
+    };
+
+    if (shouldPlayExplosion()) {
       if (!explosionAudio.current) {
-        explosionAudio.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+        // Usando arquivo público para a explosão
+        explosionAudio.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1018/1018-preview.mp3');
         explosionAudio.current.volume = 0.5;
       }
       explosionAudio.current.play().catch(e => console.log("Explosion audio blocked", e));
     }
-  }, [gameState, isMuted]);
+  }, [gameState, isMuted, score, currentStoryId]);
 
   // stories data
   const stories: Story[] = [
     {
       id: 'student',
-      name: 'O Aluno',
+      name: 'Aluno',
       scenario: 'Escola',
       description: 'Um dia comum vira um teste de sobrevivência. Saia rápido!',
       icon: <GraduationCap size={40} />,
-      bg: 'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&q=80&w=1200',
-      timeLimit: 35,
+      bg: '/assets/escola.png',
+      timeLimit: 40,
       phases: [
         {
           type: 'scene',
           title: 'Alarme!',
           description: 'Sinal dispara. Corredor com fumaça.',
           goal: 'Sair da sala pela rota segura.',
-          image: 'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&q=80&w=1200',
+          image: '/assets/escola.png',
           btnText: 'Avançar'
         },
         {
           type: 'enigma',
           id: 'extinguisher',
-          title: 'O Extintor',
+          title: 'Extintor',
           question: 'Extintor ideal para papel e madeira?',
           options: [
-            { id: '1', name: 'Água (Resfriamento)', isCorrect: true, icon: <Droplets /> },
+            { id: '1', name: 'Água', isCorrect: true, icon: <Droplets /> },
             { id: '2', name: 'Pó Químico', isCorrect: false, icon: <Zap /> },
             { id: '3', name: 'CO2', isCorrect: false, icon: <Wind /> }
           ],
-          explanation: 'Papel e madeira (Classe A) pedem água.',
-          image: 'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&q=80&w=1200',
-          targetIcon: <FireExtinguisher className="text-red-600 animate-bounce" size={64} />,
-          hotspot: { x: 50, y: 50, label: 'Extintor' }
+          explanation: 'Incêndio Classe A ocorre em materiais sólidos (papel, madeira) que deixam brasas e cinzas. O resfriamento com água é o método mais eficaz.',
+          image: '/assets/escola.png',
+          hotspot: { x: 65, y: 65, label: 'Extintor', width: 150, height: 150, hideVisual: true }
         },
         {
           type: 'enigma',
           id: 'door',
           title: 'A Porta',
-          question: 'Fumaça densa: como se deslocar?',
+          question: 'Fumaça densa: por que devemos se deslocar agachado?',
           options: [
-            { id: '1', name: 'Correr rápido', isCorrect: false, icon: <PlayCircle /> },
-            { id: '2', name: 'Agachado ou rastejando', isCorrect: true, icon: <Users /> },
-            { id: '3', name: 'Subir em cadeira', isCorrect: false, icon: <Construction /> }
+            { id: '1', name: 'Para ir mais rápido', isCorrect: false, icon: <PlayCircle /> },
+            { id: '2', name: 'Ar frio é mais denso e fica no chão', isCorrect: true, icon: <Users /> },
+            { id: '3', name: 'Para não ser visto', isCorrect: false, icon: <Construction /> }
           ],
-          explanation: 'O ar puro e frio fica próximo ao chão.',
-          image: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&q=80&w=1200',
-          hotspot: { x: 70, y: 60, label: 'Corredor' }
+          explanation: 'O calor torna a fumaça menos densa, fazendo-a subir. O ar mais frio, limpo e rico em oxigênio permanece próximo ao chão.',
+          image: '/assets/escolaInicio.png',
+          hotspot: { x: 70, y: 60, label: 'Corredor', width: 200, height: 200, hideVisual: true }
         },
         {
-          type: 'code',
-          id: 'final',
-          title: 'Código de Escape',
-          question: 'Cores da sinalização?',
-          hint: 'Verde (1) e Branco (2). Digite a sequência.',
-          correctCode: '1-2-1-2',
-          image: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&q=80&w=800',
-          hotspot: { x: 80, y: 30, label: 'Placa' }
+          type: 'enigma',
+          id: 'exit_bar',
+          title: 'Saída de Emergência',
+          question: 'Como utilizar a barra antipânico na porta de saída?',
+          options: [
+            { id: '1', name: 'Puxar com as duas mãos', isCorrect: false, icon: <Lock /> },
+            { id: '2', name: 'Empurrar no sentido da fuga', isCorrect: true, icon: <ArrowRight /> },
+            { id: '3', name: 'Girar a maçaneta lateral', isCorrect: false, icon: <Unlock /> }
+          ],
+          explanation: 'A barra antipânico deve ser empurrada. Ela é projetada para abrir instantaneamente com o peso do corpo, facilitando a evacuação rápida.',
+          image: '/assets/escolaSaida.png',
+          hotspot: { x: 80, y: 30, label: 'Porta', width: 150, height: 150, hideVisual: true }
         }
       ]
     },
     {
       id: 'worker',
-      name: 'O Operário',
+      name: 'Operário',
       scenario: 'Indústria',
       description: 'Curto-circuito inicia um fogo elétrico. Saia!',
       icon: <Factory size={40} />,
-      bg: 'https://images.unsplash.com/photo-1516937941344-00b4e0337589?auto=format&fit=crop&q=80&w=1200',
-      timeLimit: 35,
+      bg: '/assets/industriaInicio.png',
+      timeLimit: 40,
       phases: [
         {
           type: 'scene',
           title: 'Painel em Chamas',
           description: 'Alarme piscando. Máquinas ligadas.',
           goal: 'Sair do pátio agora.',
-          image: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&q=80&w=1200',
+          image: '/assets/industriaInicio.png',
           btnText: 'Fugir'
         },
         {
@@ -452,30 +485,30 @@ const FireSafetyMasterGame = () => {
             { id: '2', name: 'Água é cara', isCorrect: false, icon: <Phone /> },
             { id: '3', name: 'Enferruja tudo', isCorrect: false, icon: <Construction /> }
           ],
-          explanation: 'Água conduz energia e causa eletrocussão.',
-          image: 'https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&q=80&w=800',
-          targetIcon: <FireExtinguisher className="text-red-600 animate-bounce" size={64} />,
-          hotspot: { x: 40, y: 45, label: 'Painel' }
+          explanation: 'Incêndios Classe C envolvem equipamentos elétricos energizados. Jamais utilize água, pois ela é condutora e causará eletrocussão grave.',
+          image: '/assets/industriaFogo.png',
+          hotspot: { x: 40, y: 45, label: 'Painel', width: 150, height: 150, hideVisual: true }
         },
         {
           type: 'enigma',
           id: 'door',
           title: 'Porta Corta-Fogo',
-          question: 'Qual a função desta porta?',
+          question: 'Qual a função desta porta em um incêndio?',
           options: [
-            { id: '1', name: 'Decoração', isCorrect: false, icon: <Briefcase /> },
-            { id: '2', name: 'Antifurto', isCorrect: false, icon: <Lock /> },
-            { id: '3', name: 'Conter chamas e fumaça', isCorrect: true, icon: <Shield /> }
+            { id: '1', name: 'Nenhuma, é apenas decorativa', isCorrect: false, icon: <Briefcase /> },
+            { id: '2', name: 'Impedir a entrada de estranhos', isCorrect: false, icon: <Lock /> },
+            { id: '3', name: 'Conter chamas e fumaça em setores', isCorrect: true, icon: <Shield /> }
           ],
-          explanation: 'PCF isola setores e garante tempo de fuga.',
-          image: 'https://images.unsplash.com/photo-1504194140026-63e8a4d2e7eb?auto=format&fit=crop&q=80&w=800',
-          hotspot: { x: 60, y: 55, label: 'Porta' }
+          explanation: 'As portas corta-fogo isolam setores do prédio, retardando a propagação das chamas e impedindo a passagem de fumaça tóxica para as rotas de fuga.',
+          image: '/assets/industriaFogo.png',
+          hotspot: { x: 60, y: 55, label: 'Porta', width: 200, height: 200, hideVisual: true }
         },
         {
           type: 'ppe',
           id: 'final',
           title: 'Checklist EPI',
-          question: 'Selecione 4 EPIs essenciais de risco.',
+          question: 'Selecione 4 EPIs essenciais para riscos industriais.',
+          explanation: 'O uso correto de Equipamentos de Proteção Individual (EPI) é a última barreira de proteção física do trabalhador contra agentes nocivos e acidentes.',
           correctSet: ['helmet', 'gloves', 'boots', 'glasses'],
           options: [
             { id: 'helmet', name: 'Capacete', icon: <Construction /> },
@@ -485,26 +518,26 @@ const FireSafetyMasterGame = () => {
             { id: 'mask', name: 'Mascara', icon: <Wind /> },
             { id: 'hat', name: 'Boné', icon: <Moon /> }
           ],
-          image: 'https://images.unsplash.com/photo-1531940909569-45e3ba93dc65?auto=format&fit=crop&q=80&w=800',
-          hotspot: { x: 50, y: 70, label: 'EPIs' }
+          image: '/assets/industriaEpi.png',
+          hotspot: { x: 50, y: 70, label: 'EPIs', width: 300, height: 300, hideVisual: true }
         }
       ]
     },
     {
       id: 'resident',
-      name: 'O Morador',
+      name: 'Morador',
       scenario: 'Apartamento',
       description: 'Fogo na cozinha! Escape do 5º andar.',
       icon: <Home size={40} />,
-      bg: 'https://images.unsplash.com/photo-1448630305452-945717327376?auto=format&fit=crop&q=80&w=1200',
-      timeLimit: 35,
+      bg: '/assets/apartamentoInicio.png',
+      timeLimit: 40,
       phases: [
         {
           type: 'scene',
           title: 'Fogo na Cozinha!',
           description: 'Fumaça densa do fogão. Saia agora.',
           goal: 'Sair do prédio imediatamente.',
-          image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1200',
+          image: '/assets/apartamentoInicio.png',
           btnText: 'Sair'
         },
         {
@@ -517,34 +550,34 @@ const FireSafetyMasterGame = () => {
             { id: '2', name: 'Classe B', isCorrect: false, icon: <Droplets /> },
             { id: '3', name: 'Classe K', isCorrect: true, icon: <AlertTriangle /> }
           ],
-          explanation: 'Gorduras vegetais/animais são Classe K.',
+          explanation: 'Incêndios Classe K envolvem óleos de cozinha e gorduras. Exigem extintores especiais e nunca devem ser combatidos com água, que causa explosão de gordura (boilover).',
           image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1200',
-          targetIcon: <FireExtinguisher className="text-red-600 animate-bounce" size={64} />,
-          hotspot: { x: 45, y: 40, label: 'Fogão' }
+          hotspot: { x: 45, y: 40, label: 'Fogão', width: 200, height: 200, hideVisual: true }
         },
         {
           type: 'enigma',
           id: 'door',
           title: 'Elevador?',
-          question: 'Por que não usar o elevador?',
+          question: 'Por que é proibido usar o elevador em incêndios?',
           options: [
-            { id: '1', name: 'Muito lento', isCorrect: false, icon: <Clock /> },
-            { id: '2', name: 'Pane e fumaça', isCorrect: true, icon: <Wind /> },
-            { id: '3', name: 'Reservado', isCorrect: false, icon: <Briefcase /> }
+            { id: '1', name: 'A energia é cortada por segurança', isCorrect: true, icon: <Zap /> },
+            { id: '2', name: 'O elevador é reservado para bombeiros', isCorrect: false, icon: <Briefcase /> },
+            { id: '3', name: 'As escadas são mais rápidas', isCorrect: false, icon: <Clock /> }
           ],
-          explanation: 'Risco de ficar preso no andar do fogo.',
+          explanation: 'O poço do elevador atua como uma chaminé, sugando fumaça. Além disso, a energia é cortada, podendo deixar as pessoas presas em andares em chamas.',
           image: 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=800',
-          hotspot: { x: 75, y: 50, label: 'Elevador' }
+          hotspot: { x: 75, y: 50, label: 'Elevador', width: 200, height: 200, hideVisual: true }
         },
         {
           type: 'map',
           id: 'final',
           title: 'Mapa de Evacuação',
-          question: 'Código da escadaria no mapa?',
-          hint: 'Código de 4 dígitos na legenda (Dica: 5102)',
+          question: 'Qual o código da escada pressurizada no mapa?',
+          hint: 'Consulte a legenda do mapa de risco (Dica: 5102)',
+          explanation: 'Mapas de risco e plantas de emergência são cruciais para localizar escadas pressurizadas e pontos de encontro seguros fora da edificação.',
           correctCode: '5102',
           image: 'https://images.unsplash.com/photo-1524334228333-0f6db392f8a1?auto=format&fit=crop&q=80&w=1200',
-          hotspot: { x: 30, y: 40, label: 'Mapa' }
+          hotspot: { x: 30, y: 40, label: 'Mapa', width: 250, height: 250, hideVisual: true }
         }
       ]
     }
@@ -580,6 +613,7 @@ const FireSafetyMasterGame = () => {
     if (story) {
       setCurrentStoryId(storyId);
       setPhaseIndex(0);
+      setScore(0); // Reset score for new story
       setTimeLeft(story.timeLimit);
       setGameState('playing');
       setTimerActive(true);
@@ -594,22 +628,34 @@ const FireSafetyMasterGame = () => {
     const option = currentPhase.options?.find(o => o.id === optionId);
     const isCorrect = option?.isCorrect || false;
 
+    // Play sounds
+    const correctAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+    const wrongAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/894/894-preview.mp3');
+    
     if (isCorrect) {
+      if (!isMuted) correctAudio.play().catch(e => console.log('Audio play failed:', e));
       setScore(prev => prev + 25);
-      setShowEnigma(false);
+      setGameExplanations(prev => {
+        const alreadyExists = prev.some(exp => exp.title === currentPhase.title);
+        if (alreadyExists) return prev;
+        return [...prev, { title: currentPhase.title, explanation: currentPhase.explanation || '' }];
+      });
       setFeedback({
         correct: true,
-        message: 'Bom trabalho!',
-        explanation: currentPhase.explanation || ''
+        message: 'Correto!',
+        explanation: ''
       });
-      setGameState('feedback');
+      setTimeout(() => {
+        nextPhase();
+      }, 1500);
     } else {
+      if (!isMuted) wrongAudio.play().catch(e => console.log('Audio play failed:', e));
       setFeedback({
         correct: false,
-        message: 'Atenção!',
-        explanation: 'Revise a segurança e tente de novo.'
+        message: 'Tente de novo!',
+        explanation: 'Resposta incorreta. Analise a situação e escolha outra opção.'
       });
-      // Don't change game state to block progression but allow retry
+      setTimeout(() => setFeedback(null), 2000);
     }
   };
 
@@ -633,21 +679,34 @@ const FireSafetyMasterGame = () => {
     const code = finalCodeInput.join(type === 'code' ? '-' : '');
     const isCorrect = code === currentPhase?.correctCode;
 
+    // Play sounds
+    const correctAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+    const wrongAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/894/894-preview.mp3');
+
     if (isCorrect) {
+      if (!isMuted) correctAudio.play().catch(e => console.log('Audio play failed:', e));
       setScore(prev => prev + 50);
-      setShowEnigma(false);
+      setGameExplanations(prev => {
+        const alreadyExists = prev.some(exp => exp.title === currentPhase.title);
+        if (alreadyExists) return prev;
+        return [...prev, { title: currentPhase.title, explanation: currentPhase.explanation || '' }];
+      });
       setFeedback({
         correct: true,
-        message: 'Acesso Liberado!',
-        explanation: 'Você identificou o código correto e conseguiu escapar com segurança!'
+        message: 'Código Aceito!',
+        explanation: ''
       });
-      setGameState('feedback');
+      setTimeout(() => {
+        nextPhase();
+      }, 1500);
     } else {
+      if (!isMuted) wrongAudio.play().catch(e => console.log('Audio play failed:', e));
       setFeedback({
         correct: false,
-        message: 'Código Inválido!',
-        explanation: 'Observe atentamente as cores ou legendas no cenário.'
+        message: 'Código Incorreto!',
+        explanation: 'Tente de novo seguindo a dica visual.'
       });
+      setTimeout(() => setFeedback(null), 2000);
     }
   };
 
@@ -665,21 +724,34 @@ const FireSafetyMasterGame = () => {
     const isCorrect = selectedPPEs.length === currentPhase.correctSet?.length && 
                       selectedPPEs.every(p => currentPhase.correctSet?.includes(p));
     
+    // Play sounds
+    const correctAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+    const wrongAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/894/894-preview.mp3');
+
     if (isCorrect) {
+      if (!isMuted) correctAudio.play().catch(e => console.log('Audio play failed:', e));
       setScore(prev => prev + 50);
-      setShowEnigma(false);
+      setGameExplanations(prev => {
+        const alreadyExists = prev.some(exp => exp.title === currentPhase.title);
+        if (alreadyExists) return prev;
+        return [...prev, { title: currentPhase.title, explanation: currentPhase.explanation || '' }];
+      });
       setFeedback({
         correct: true,
-        message: 'Equipagem Correta!',
-        explanation: 'Você selecionou todos os EPIs necessários para realizar a evacuação industrial.'
+        message: 'Equipado!',
+        explanation: ''
       });
-      setGameState('feedback');
+      setTimeout(() => {
+        nextPhase();
+      }, 1500);
     } else {
+      if (!isMuted) wrongAudio.play().catch(e => console.log('Audio play failed:', e));
       setFeedback({
         correct: false,
-        message: 'Equipamento Incorreto!',
-        explanation: 'Alguns itens selecionados não pertencem à proteção individual industrial exigida.'
+        message: 'Tente de novo!',
+        explanation: 'Faltam itens ou itens incorretos selecionados.'
       });
+      setTimeout(() => setFeedback(null), 2000);
     }
   };
 
@@ -753,12 +825,11 @@ const FireSafetyMasterGame = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8 md:mb-16"
           >
-             <span className="text-brand-accent font-mono font-bold text-[9px] md:text-[10px] uppercase tracking-[0.4em] mb-2 md:mb-3 block">Fase de Preparação // SELECT_MISSION</span>
              <h3 className="text-xl sm:text-3xl md:text-5xl font-display font-black text-brand-text mb-2 md:mb-3 uppercase leading-none tracking-tighter text-balance">Escolha seu Destino</h3>
              <p className="text-xs md:text-base text-brand-text-muted max-w-lg mx-auto px-4">Cenários críticos que exigem protocolos específicos de segurança.</p>
           </motion.div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8">
             {stories.map((story, i) => (
               <motion.div
                 key={story.id}
@@ -768,7 +839,12 @@ const FireSafetyMasterGame = () => {
                 whileHover={{ y: -8, scale: 1.01 }}
                 onClick={() => startStory(story.id)}
                 className={`group relative cursor-pointer rounded-[2.5rem] overflow-hidden border-2 transition-all duration-500 flex flex-col h-full
-                  ${storiesCompleted.includes(story.id) ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-border/40 hover:border-brand-accent'}`}
+                  ${story.id === 'student' 
+                    ? (storiesCompleted.includes(story.id) ? 'border-yellow-500 bg-yellow-500/5' : 'border-yellow-500/40 hover:border-yellow-500')
+                    : (story.id === 'worker' || story.id === 'resident')
+                      ? (storiesCompleted.includes(story.id) ? 'border-green-500 bg-green-500/5' : 'border-green-500/40 hover:border-green-500')
+                      : (storiesCompleted.includes(story.id) ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-border/40 hover:border-brand-accent')
+                  }`}
               >
                 <div className="absolute inset-0 z-0">
                   <img src={story.bg} className="w-full h-full object-cover opacity-20 group-hover:opacity-40 transition-opacity duration-700" referrerPolicy="no-referrer" />
@@ -776,29 +852,88 @@ const FireSafetyMasterGame = () => {
                 </div>
                 
                 <div className="relative z-10 p-6 md:p-8 flex flex-col items-center text-center flex-1">
-                  <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl transition-all duration-500 transform group-hover:rotate-6 ${storiesCompleted.includes(story.id) ? 'bg-brand-accent text-white' : 'bg-brand-surface border border-brand-border text-brand-accent'}`}>
+                  <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl transition-all duration-500 transform group-hover:rotate-6 
+                    ${story.id === 'student' ? 'bg-yellow-500 text-black' : (story.id === 'worker' || story.id === 'resident') ? 'bg-green-500 text-white' : (storiesCompleted.includes(story.id) ? 'bg-brand-accent text-white' : 'bg-brand-surface border border-brand-border text-brand-accent')}`}
+                  >
                     {React.cloneElement(story.icon as React.ReactElement, { size: 32 })}
                   </div>
                   
-                  <span className="text-[9px] font-black text-brand-accent/80 uppercase tracking-widest mb-2 block">{story.scenario}</span>
+                  <span className={`text-[9px] font-black uppercase tracking-widest mb-2 block ${story.id === 'student' ? 'text-yellow-500' : (story.id === 'worker' || story.id === 'resident') ? 'text-green-500' : 'text-brand-accent/80'}`}>{story.id === 'student' ? 'Desempenho' : story.scenario}</span>
                   <h4 className="text-xl md:text-2xl font-display font-black text-white mb-3 uppercase tracking-tight leading-tight">{story.name}</h4>
                   
                   <p className="text-[11px] md:text-xs text-brand-text-muted leading-relaxed mb-6 block lg:opacity-60 lg:group-hover:opacity-100 transition-opacity duration-500 line-clamp-2">
                     {story.description}
                   </p>
                   
-                  <div className={`mt-auto px-5 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all ${storiesCompleted.includes(story.id) ? 'bg-brand-accent text-brand-bg border-brand-accent' : 'bg-white/5 border-white/10 text-white group-hover:bg-brand-accent group-hover:text-brand-bg group-hover:border-brand-accent'}`}>
+                  <div className={`mt-auto px-5 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border transition-all 
+                    ${story.id === 'student' 
+                      ? (storiesCompleted.includes(story.id) ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500 group-hover:bg-yellow-500 group-hover:text-black group-hover:border-yellow-500')
+                      : (story.id === 'worker' || story.id === 'resident')
+                        ? (storiesCompleted.includes(story.id) ? 'bg-green-500 text-white border-green-500' : 'bg-green-500/10 border-green-500/20 text-green-500 group-hover:bg-green-500 group-hover:text-white group-hover:border-green-500')
+                        : (storiesCompleted.includes(story.id) ? 'bg-brand-accent text-brand-bg border-brand-accent' : 'bg-white/5 border-white/10 text-white group-hover:bg-brand-accent group-hover:text-brand-bg group-hover:border-brand-accent')
+                    }`}
+                  >
                     {storiesCompleted.includes(story.id) ? 'Completo' : 'Começar'}
                   </div>
                 </div>
               </motion.div>
             ))}
+
+            {/* Scape Quiz Block */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: stories.length * 0.1 }}
+              whileHover={{ y: -8, scale: 1.01 }}
+              onClick={() => setGameState('show')}
+              className="group relative cursor-pointer rounded-[2.5rem] overflow-hidden border-2 border-yellow-500/40 hover:border-yellow-500 transition-all duration-500 flex flex-col h-full bg-yellow-500/5"
+            >
+              <div className="absolute inset-0 z-0">
+                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-20 group-hover:opacity-40 transition-opacity duration-700" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-brand-bg/60 to-transparent" />
+              </div>
+              
+              <div className="relative z-10 p-6 md:p-8 flex flex-col items-center text-center flex-1">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl transition-all duration-500 transform group-hover:rotate-6 bg-yellow-500 text-black">
+                  <Trophy size={32} />
+                </div>
+                
+                <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-2 block">Desempenho</span>
+                <h4 className="text-xl md:text-2xl font-display font-black text-white mb-3 uppercase tracking-tight leading-tight">Scape Quiz</h4>
+                
+                <p className="text-[11px] md:text-xs text-brand-text-muted leading-relaxed mb-6 block lg:opacity-60 lg:group-hover:opacity-100 transition-opacity duration-500 line-clamp-2">
+                  Só quem tem conhecimento chega até a saida, será que você consegue chegar ao final?
+                </p>
+                
+                <div className="mt-auto px-5 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 group-hover:bg-yellow-500 group-hover:text-black transition-all">
+                  Começar
+                </div>
+              </div>
+            </motion.div>
           </div>
           {storiesCompleted.length > 0 && (
             <div className="mt-12 text-center">
               <button onClick={() => setGameState('start')} className="text-brand-text-muted hover:text-brand-accent font-bold uppercase tracking-widest transition-colors">Voltar ao Início</button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Scape Quiz Screen */}
+      {gameState === 'show' && (
+        <div className="flex-1 flex flex-col min-h-[700px]">
+          <div className="p-4 bg-brand-bg border-b border-brand-border flex justify-between items-center">
+            <button 
+              onClick={() => setGameState('selection')}
+              className="flex items-center gap-2 text-brand-text-muted hover:text-brand-accent transition-colors font-bold uppercase text-[10px] tracking-widest"
+            >
+              <ChevronLeft size={16} /> Voltar para Missões
+            </button>
+            <div className="text-yellow-500 font-display font-black italic uppercase tracking-tighter">Scape Quiz</div>
+          </div>
+          <div className="flex-1 flex flex-col">
+            <SegurancaShowGame />
+          </div>
         </div>
       )}
 
@@ -863,7 +998,6 @@ const FireSafetyMasterGame = () => {
                           <Info size={20} className="animate-bounce md:size-[28px]" />
                        </div>
                        <div className="flex-1 min-w-0">
-                          <h5 className="text-[8px] font-mono font-bold text-brand-accent uppercase tracking-[0.3em] mb-0.5">Missão // STATUS_ACTIVE</h5>
                           <h4 className="text-base md:text-xl font-display font-black text-brand-text uppercase truncate leading-tight tracking-tight">{currentPhase.goal}</h4>
                           <p className="text-[10px] md:text-sm text-brand-text-muted font-medium italic line-clamp-2">{currentPhase.description}</p>
                        </div>
@@ -877,13 +1011,14 @@ const FireSafetyMasterGame = () => {
                 {/* Help Prompt (When scene intro is gone but user hasn't found hotspot) */}
                 {currentPhase.type === 'scene' && !showSceneIntro && !showEnigma && (
                    <motion.div 
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="absolute bottom-1/3 left-1/2 -translate-x-1/2 z-10 px-6 py-3 bg-brand-bg/40 backdrop-blur-md border border-white/10 rounded-full flex items-center gap-3"
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     className="absolute bottom-6 left-6 z-30 px-5 py-2.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center gap-3 shadow-2xl"
                    >
-                     <Search size={16} className="text-brand-accent" />
-                     <span className="text-xs font-black uppercase tracking-widest text-white/60">Encontre o objeto de interação no cenário</span>
-                     <button onClick={nextPhase} className="ml-4 text-[10px] font-black text-brand-accent hover:underline uppercase tracking-widest">Pular para enigma</button>
+                     <div className="w-8 h-8 bg-brand-accent/20 rounded-lg flex items-center justify-center text-brand-accent">
+                        <Search size={18} />
+                     </div>
+                     <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-white">Encontre o objeto no cenário</span>
                    </motion.div>
                 )}
 
@@ -893,20 +1028,32 @@ const FireSafetyMasterGame = () => {
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0 }}
-                    style={{ left: `${currentPhase.hotspot.x}%`, top: `${currentPhase.hotspot.y}%` }}
+                    style={{ 
+                      left: `${currentPhase.hotspot.x}%`, 
+                      top: `${currentPhase.hotspot.y}%`,
+                      width: currentPhase.hotspot.hideVisual ? (currentPhase.hotspot.width ? `${currentPhase.hotspot.width}px` : '100px') : 'auto',
+                      height: currentPhase.hotspot.hideVisual ? (currentPhase.hotspot.height ? `${currentPhase.hotspot.height}px` : '100px') : 'auto',
+                    }}
                     className="absolute z-20 -translate-x-1/2 -translate-y-1/2"
                   >
                     <button 
                       onClick={() => setShowEnigma(true)}
-                      className="relative group/hotspot"
+                      className={`relative group/hotspot w-full h-full ${currentPhase.hotspot.hideVisual ? 'cursor-pointer' : ''}`}
                     >
-                      <div className="absolute inset-0 rounded-full bg-brand-accent animate-ping opacity-40" />
-                      <div className="w-16 h-16 rounded-full bg-brand-accent border-4 border-white flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-95 relative z-10">
-                        {currentPhase.targetIcon || <ChevronRight size={28} />}
-                      </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 px-4 py-2 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded-full opacity-0 group-hover/hotspot:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
-                        Interagir com {currentPhase.hotspot.label || 'Objeto'}
-                      </div>
+                      {!currentPhase.hotspot.hideVisual && (
+                        <>
+                          <div className="absolute inset-0 rounded-full bg-brand-accent animate-ping opacity-40" />
+                          <div className="w-16 h-16 rounded-full bg-brand-accent border-4 border-white flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-95 relative z-10">
+                            {currentPhase.targetIcon || <ChevronRight size={28} />}
+                          </div>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 px-4 py-2 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded-full opacity-0 group-hover/hotspot:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+                            Interagir com {currentPhase.hotspot.label || 'Objeto'}
+                          </div>
+                        </>
+                      )}
+                      {currentPhase.hotspot.hideVisual && (
+                        <div className="w-full h-full bg-transparent hover:bg-white/10 border-2 border-dashed border-white/0 hover:border-white/20 transition-all rounded-lg" />
+                      )}
                     </button>
                   </motion.div>
                 )}
@@ -1005,6 +1152,26 @@ const FireSafetyMasterGame = () => {
                   </motion.div>
                 )}
             </AnimatePresence>
+                 {/* Success Feedback Overlay */}
+            <AnimatePresence>
+              {feedback && feedback.correct && (
+                 <motion.div 
+                   initial={{ opacity: 0 }} 
+                   animate={{ opacity: 1 }} 
+                   exit={{ opacity: 0 }}
+                   className="absolute inset-0 z-[100] bg-green-500/20 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+                 >
+                    <motion.div
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-brand-bg/90 border-2 border-green-500 rounded-full p-8 shadow-2xl flex flex-col items-center gap-2"
+                    >
+                      <CheckCircle2 size={64} className="text-green-500" />
+                      <span className="text-xl font-display font-black text-white uppercase tracking-widest">{feedback.message}</span>
+                    </motion.div>
+                 </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Wrong Answer Alert Overlay */}
             <AnimatePresence>
@@ -1013,48 +1180,17 @@ const FireSafetyMasterGame = () => {
                    initial={{ opacity: 0, y: 50 }} 
                    animate={{ opacity: 1, y: 0 }} 
                    exit={{ opacity: 0, y: 50 }}
-                   className="absolute bottom-4 left-4 right-4 md:bottom-10 md:left-10 md:right-10 z-[50] p-6 md:p-8 bg-red-500/90 backdrop-blur-2xl border-2 border-white/20 rounded-3xl md:rounded-[3rem] shadow-3xl text-center overflow-y-auto max-h-[40vh]"
+                   className="absolute bottom-4 left-4 right-4 md:bottom-10 md:left-1/2 md:-translate-x-1/2 z-[50] p-4 md:p-6 bg-red-600/90 backdrop-blur-xl border border-white/20 rounded-2xl md:rounded-3xl shadow-3xl text-center flex items-center gap-4 max-w-sm"
                  >
-                    <div className="flex items-center justify-center gap-3 md:gap-4 mb-3 md:mb-4">
-                       <AlertTriangle size={32} className="text-white animate-bounce" />
-                       <h5 className="text-3xl font-display font-black text-white uppercase tracking-tighter">{feedback.message}</h5>
-                    </div>
-                    <p className="text-sm md:text-lg text-white/90 font-bold mb-4 md:mb-6 italic leading-snug">"{feedback.explanation}"</p>
-                    <div className="flex justify-center gap-4">
-                      <button onClick={() => setFeedback(null)} className="px-10 py-4 bg-white text-red-500 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-transform">Tentar Novamente</button>
+                    <AlertTriangle size={24} className="text-white shrink-0" />
+                    <div className="text-left">
+                       <h5 className="text-sm font-display font-black text-white uppercase tracking-tighter">{feedback.message}</h5>
+                       <p className="text-[10px] text-white/80 font-bold leading-tight">{feedback.explanation}</p>
                     </div>
                  </motion.div>
               )}
             </AnimatePresence>
           </div>
-        </div>
-      )}
-
-      {/* Story Stage Feedback (Green - Success) */}
-      {gameState === 'feedback' && feedback?.correct && (
-        <div className="p-6 md:p-12 flex-1 flex flex-col items-center justify-center text-center relative overflow-hidden z-10">
-           <div className="absolute inset-0 bg-brand-bg/40 backdrop-blur-[2px]" />
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.1),transparent_70%)]" />
-           <motion.div 
-             initial={{ scale: 0.8, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             className="w-16 h-16 md:w-24 md:h-24 bg-green-500/20 text-green-500 rounded-2xl md:rounded-3xl flex items-center justify-center mb-6 shadow-2xl border border-green-500/30 relative z-10"
-           >
-              <CheckCircle2 size={32} className="md:size-[48px]" />
-           </motion.div>
-           
-           <h3 className="text-xl sm:text-3xl md:text-5xl font-display font-black text-brand-text mb-3 tracking-tighter uppercase leading-none relative z-10">{feedback.message}</h3>
-           
-           <div className="w-full max-w-2xl bg-brand-surface/40 backdrop-blur-md p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-brand-border/50 mb-8 text-center shadow-xl relative z-10">
-              <span className="text-[9px] font-mono font-bold text-green-500 uppercase tracking-[0.3em] mb-2 block">Dica de Segurança // PROTOCOLO_OK</span>
-              <p className="text-sm md:text-xl text-brand-text/90 leading-tight font-bold italic">
-                 "{feedback.explanation}"
-              </p>
-           </div>
-           
-           <button onClick={nextPhase} className="btn-primary px-8 md:px-12 py-3 md:py-5 text-sm md:text-lg tracking-widest flex items-center group rounded-xl md:rounded-2xl relative z-10">
-              CONTINUAR <ChevronRight size={20} className="md:size-[24px] group-hover:translate-x-2 transition-transform" />
-           </button>
         </div>
       )}
 
@@ -1072,28 +1208,71 @@ const FireSafetyMasterGame = () => {
            </motion.div>
            
            <h3 className="text-2xl sm:text-5xl md:text-7xl font-display font-black text-brand-text mb-2 uppercase tracking-tighter leading-none relative z-10 text-balance">Missão Cumprida!</h3>
-           <p className="text-lg md:text-2xl text-brand-text-muted mb-12 font-medium relative z-10 text-balance">Você dominou os perigos em <span className="text-brand-accent italic font-black">{currentStory?.name}</span>.</p>
+           <p className="text-lg md:text-2xl text-brand-text-muted mb-8 font-medium relative z-10 text-balance">Você dominou os perigos em <span className="text-brand-accent italic font-black">{currentStory?.name}</span>.</p>
            
-           <div className="grid grid-cols-2 gap-4 md:gap-8 mb-8 md:mb-12 w-full max-w-md">
-             <div className="bg-brand-surface p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-border shadow-xl">
-                <span className="text-[9px] md:text-[10px] font-mono font-bold text-brand-accent uppercase tracking-widest block mb-1">SCORE_PT</span>
-                <span className="text-3xl md:text-5xl font-mono font-black text-brand-text">100</span>
-             </div>
-             <div className="bg-brand-surface p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-brand-border shadow-xl">
-                <span className="text-[9px] md:text-[10px] font-mono font-bold text-brand-accent uppercase tracking-widest block mb-1">UNIT_STATUS</span>
-                <span className="text-base md:text-2xl font-display font-black text-green-500 uppercase tracking-tighter leading-none">SUCCESS</span>
-             </div>
-           </div>
+           <div className="w-full max-w-4xl bg-brand-surface/60 backdrop-blur-md p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-brand-border/50 mb-8 text-left shadow-xl relative z-10">
+               <h4 className="text-brand-accent font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                 <BookOpen size={16} /> Feedback
+               </h4>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {gameExplanations.map((exp, idx) => (
+                    <div key={idx} className="p-4 bg-brand-bg/40 rounded-2xl border border-white/5">
+                      <span className="text-[10px] font-black text-brand-accent uppercase mb-1 block">{exp.title}</span>
+                      <p className="text-xs md:text-sm text-brand-text/80 leading-relaxed font-bold italic">"{exp.explanation}"</p>
+                    </div>
+                  ))}
+                  {gameExplanations.length === 0 && (
+                    <p className="text-brand-text font-bold italic col-span-full">Nenhum feedback disponível.</p>
+                  )}
+               </div>
+            </div>
 
-           <div className="flex flex-col md:flex-row gap-4 w-full max-w-md">
-             <button onClick={() => setGameState('selection')} className="btn-primary w-full justify-center px-6 py-4 font-black uppercase tracking-widest text-xs">Voltar ao Menu</button>
-             <button onClick={() => startStory(currentStoryId!)} className="btn-secondary w-full justify-center px-6 py-4 font-black uppercase tracking-widest text-xs">Tentar de Novo</button>
+           <div className="flex flex-col md:flex-row gap-3 w-full max-w-lg relative z-10 px-4">
+             {(() => {
+                const currentIndex = stories.findIndex(s => s.id === currentStoryId);
+                const nextStory = stories[currentIndex + 1];
+                
+                if (nextStory) {
+                  return (
+                    <button 
+                      onClick={() => {
+                        setGameExplanations([]);
+                        startStory(nextStory.id);
+                      }} 
+                      className="btn-primary flex-1 justify-center px-6 py-4 font-black uppercase tracking-widest text-[10px] md:text-xs bg-brand-accent hover:bg-brand-accent-hover shadow-[0_0_20px_rgba(0,166,80,0.3)] transition-all hover:scale-105"
+                    >
+                      Próxima Missão: {nextStory.name} <ArrowRight size={16} className="ml-2" />
+                    </button>
+                  );
+                }
+                return null;
+             })()}
+
+             <button 
+               onClick={() => {
+                 setGameState('selection');
+                 setGameExplanations([]);
+               }} 
+               className="btn-secondary flex-1 justify-center px-6 py-4 font-black uppercase tracking-widest text-[10px] md:text-xs border-white/10 hover:bg-white/5"
+             >
+               {stories.findIndex(s => s.id === currentStoryId) === stories.length - 1 ? 'Voltar ao Início' : 'Menu de Missões'}
+             </button>
+             
+             <button 
+               onClick={() => {
+                 setGameExplanations([]);
+                 startStory(currentStoryId!);
+               }} 
+               className="btn-secondary flex-1 justify-center px-6 py-4 font-black uppercase tracking-widest text-[10px] md:text-xs border-white/10 hover:bg-white/5"
+             >
+               Reiniciar
+             </button>
            </div>
            
            {storiesCompleted.length === stories.length && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-16 p-8 bg-brand-accent/10 border-2 border-brand-accent/30 rounded-[3rem] max-w-2xl">
                  <h4 className="text-3xl font-display font-black text-brand-accent mb-4 uppercase">Mestre do Escape SOS!</h4>
-                 <p className="text-brand-text leading-relaxed font-bold">Parabéns! Você completou as 3 histórias e demonstrou saber exatamente como agir em diferentes cenários de emergência.</p>
+                 <p className="text-brand-text leading-relaxed font-bold">Parabéns! Você completou todas as histórias e demonstrou saber exatamente como agir em diferentes cenários de emergência.</p>
               </motion.div>
            )}
         </div>
@@ -1134,13 +1313,465 @@ const FireSafetyMasterGame = () => {
   );
 };
 
+interface TriviaQuestion {
+  id: number;
+  question: string;
+  image: string;
+  options: { id: string; text: string; isCorrect: boolean }[];
+}
+
+const triviaQuestions: TriviaQuestion[] = [
+  {
+    id: 1,
+    question: "Segundo o Anexo B, qual o significado deste símbolo circular com uma barra diagonal e um cigarro?",
+    image: "/assets/proibidofumar.jpg",
+    options: [
+      { id: "A", text: "Área de fumantes", isCorrect: false },
+      { id: "B", text: "Proibido fumar (Código P1)", isCorrect: true },
+      { id: "C", text: "Cuidado: Gases inflamáveis", isCorrect: false },
+      { id: "D", text: "Venda de tabaco proibida", isCorrect: false }
+    ]
+  },
+  {
+    id: 2,
+    question: "O símbolo triangular com uma chama preta (Código A2) alerta para:",
+    image: "https://images.unsplash.com/photo-1504194140026-63e8a4d2e7eb?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Risco de explosão", isCorrect: false },
+      { id: "B", text: "Ponto de encontro", isCorrect: false },
+      { id: "C", text: "Cuidado, risco de incêndio", isCorrect: true },
+      { id: "D", text: "Equipamento de combate a incêndio", isCorrect: false }
+    ]
+  },
+  {
+    id: 3,
+    question: "A placa retangular verde com a inscrição 'SAÍDA' (Código S12) indica:",
+    image: "https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Saída de serviço", isCorrect: false },
+      { id: "B", text: "Atenção: Porta de vidro", isCorrect: false },
+      { id: "C", text: "Saída de emergência", isCorrect: true },
+      { id: "D", text: "Entrada proibida", isCorrect: false }
+    ]
+  },
+  {
+    id: 4,
+    question: "O que indica o símbolo quadrado vermelho com um telefone branco (Código E4)?",
+    image: "https://images.unsplash.com/photo-1520923642038-b4259ace9439?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Telefone público", isCorrect: false },
+      { id: "B", text: "Telefone ou interfone de emergência", isCorrect: true },
+      { id: "C", text: "Proibido usar celular", isCorrect: false },
+      { id: "D", text: "Central de atendimento", isCorrect: false }
+    ]
+  },
+  {
+    id: 5,
+    question: "O código S24, com setas apontando para o centro de um quadrado verde, representa:",
+    image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Ponto de encontro", isCorrect: true },
+      { id: "B", text: "Elevador de emergência", isCorrect: false },
+      { id: "C", text: "Área de resgate", isCorrect: false },
+      { id: "D", text: "Saída para deficientes", isCorrect: false }
+    ]
+  },
+  {
+    id: 6,
+    question: "A placa P4, afixada em elevadores comuns, traz qual mensagem obrigatória?",
+    image: "https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "USE APENAS EM EMERGÊNCIAS", isCorrect: false },
+      { id: "B", text: "CAPACIDADE MÁXIMA 10 PESSOAS", isCorrect: false },
+      { id: "C", text: "DESCER PELAS ESCADAS", isCorrect: false },
+      { id: "D", text: "PROIBIDO UTILIZAR O ELEVADOR EM CASO DE INCÊNDIO", isCorrect: true }
+    ]
+  },
+  {
+    id: 7,
+    question: "O símbolo triangular com um raio (Código A5) é utilizado em:",
+    image: "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Painéis de disjuntores e subestações", isCorrect: true },
+      { id: "B", text: "Áreas de radiação", isCorrect: false },
+      { id: "C", text: "Depósitos de inflamáveis", isCorrect: false },
+      { id: "D", text: "Locais com piso molhado", isCorrect: false }
+    ]
+  },
+  {
+    id: 8,
+    question: "O código E5 (quadrado vermelho com cilindro branco) indica a localização de:",
+    image: "https://images.unsplash.com/photo-1621360841013-c7683c659ec6?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Mangotinho", isCorrect: false },
+      { id: "B", text: "Hidrante", isCorrect: false },
+      { id: "C", text: "Extintor de incêndio", isCorrect: true },
+      { id: "D", text: "Alarme sonoro", isCorrect: false }
+    ]
+  },
+  {
+    id: 9,
+    question: "A sinalização C2 (faixa amarela e preta) é utilizada para indicar:",
+    image: "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Saída final das rotas de fuga", isCorrect: false },
+      { id: "B", text: "Indicação de obstáculos ou riscos", isCorrect: true },
+      { id: "C", text: "Área de hidrantes", isCorrect: false },
+      { id: "D", text: "Sentido da saída", isCorrect: false }
+    ]
+  },
+  {
+    id: 10,
+    question: "O símbolo S25 (coração branco com raio em fundo verde) identifica o:",
+    image: "https://images.unsplash.com/photo-1516670428252-df97bba108d1?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Posto de Primeiros Socorros", isCorrect: false },
+      { id: "B", text: "Desfibrilador Externo Automático (DEA)", isCorrect: true },
+      { id: "C", text: "Farmácia de emergência", isCorrect: false },
+      { id: "D", text: "Área de resgate médico", isCorrect: false }
+    ]
+  },
+  {
+    id: 11,
+    question: "Placas com o código E8 mostram a letra 'H' branca em fundo vermelho para indicar:",
+    image: "https://images.unsplash.com/photo-1596522354195-e84935836893?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Hospital próximo", isCorrect: false },
+      { id: "B", text: "Heliponto", isCorrect: false },
+      { id: "C", text: "Hidrante de incêndio", isCorrect: true },
+      { id: "D", text: "Hangar de extintores", isCorrect: false }
+    ]
+  },
+  {
+    id: 12,
+    question: "O que indica o símbolo P2 (círculo vermelho com chama cruzada)?",
+    image: "https://images.unsplash.com/photo-1502472545336-6136fa5c05d0?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Proibido produzir chama", isCorrect: true },
+      { id: "B", text: "Proibido fumar", isCorrect: false },
+      { id: "C", text: "Área de alta temperatura", isCorrect: false },
+      { id: "D", text: "Proibido usar água", isCorrect: false }
+    ]
+  },
+  {
+    id: 13,
+    question: "O sinal E19 (retângulo vermelho com borda amarela) serve para sinalizar o:",
+    image: "https://images.unsplash.com/photo-1473186578172-c141e6798ee4?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Extintor de pó químico", isCorrect: false },
+      { id: "B", text: "Corte de energia", isCorrect: true },
+      { id: "C", text: "Gerador elétrico", isCorrect: false },
+      { id: "D", text: "Acionador de alarme", isCorrect: false }
+    ]
+  },
+  {
+    id: 14,
+    question: "Segundo o Anexo B, o código S17 identifica o:",
+    image: "https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Número do pavimento", isCorrect: true },
+      { id: "B", text: "Número do apartamento", isCorrect: false },
+      { id: "C", text: "Saída de deficientes", isCorrect: false },
+      { id: "D", text: "Capacidade da escada", isCorrect: false }
+    ]
+  },
+  {
+    id: 15,
+    question: "O símbolo triangular com uma caveira (Código A7) indica cuidado com:",
+    image: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Risco de morte por queda", isCorrect: false },
+      { id: "B", text: "Produtos tóxicos / veneno", isCorrect: true },
+      { id: "C", text: "Radiação ionizante", isCorrect: false },
+      { id: "D", text: "Substâncias corrosivas", isCorrect: false }
+    ]
+  },
+  {
+    id: 16,
+    question: "A placa E2 (quadrada vermelha com círculo branco) identifica o:",
+    image: "https://images.unsplash.com/photo-1506302393653-2c1b0ad06431?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Avisador sonoro", isCorrect: false },
+      { id: "B", text: "Detector de fumaça", isCorrect: false },
+      { id: "C", text: "Acionador manual de alarme de incêndio", isCorrect: true },
+      { id: "D", text: "Painel de controle", isCorrect: false }
+    ]
+  },
+  {
+    id: 17,
+    question: "O símbolo P3 (círculo vermelho com balde cruzado sobre chama) significa:",
+    image: "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Proibido utilizar água para apagar o fogo", isCorrect: true },
+      { id: "B", text: "Local sem abastecimento de água", isCorrect: false },
+      { id: "C", text: "Perigo: Reação com água", isCorrect: false },
+      { id: "D", text: "Uso obrigatório de extintor de água", isCorrect: false }
+    ]
+  },
+  {
+    id: 18,
+    question: "A sinalização S27 (boneco na cadeira de rodas em fundo azul) indica:",
+    image: "https://images.unsplash.com/photo-1536709082155-276ceb6a67f0?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Vaga de estacionamento", isCorrect: false },
+      { id: "B", text: "Elevador PCD", isCorrect: false },
+      { id: "C", text: "Indicação de área de resgate", isCorrect: true },
+      { id: "D", text: "Rampeamento obrigatório", isCorrect: false }
+    ]
+  },
+  {
+    id: 19,
+    question: "O código E1 identifica o símbolo de quadrada vermelha com corneta branca, que é o:",
+    image: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Avisador sonoro do alarme de incêndio", isCorrect: true },
+      { id: "B", text: "Alto-falante de avisos", isCorrect: false },
+      { id: "C", text: "Sirene de evacuação civil", isCorrect: false },
+      { id: "D", text: "Telefone de emergência", isCorrect: false }
+    ]
+  },
+  {
+    id: 20,
+    question: "O que indica a placa N1 com pictogramas verdes e vermelhos?",
+    image: "https://images.unsplash.com/photo-1502127271810-708092496a79?auto=format&fit=crop&q=80&w=400",
+    options: [
+      { id: "A", text: "Instruções de abandono de área", isCorrect: false },
+      { id: "B", text: "Indicação do tipo de agente extintor e classes de fogo", isCorrect: true },
+      { id: "C", text: "Mapa de riscos do pavimento", isCorrect: false },
+      { id: "D", text: "Locais de armazenamento de EPIs", isCorrect: false }
+    ]
+  }
+];
+
+const SegurancaShowGame = () => {
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'result'>('start');
+  const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(20);
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState<{ id: string; correct: boolean } | null>(null);
+  const explosionAudio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (gameState === 'result') {
+      const percentage = (score / triviaQuestions.length) * 100;
+      if (percentage < 70) {
+        if (!explosionAudio.current) {
+          explosionAudio.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1018/1018-preview.mp3');
+          explosionAudio.current.volume = 0.5;
+        }
+        explosionAudio.current.play().catch(e => console.log("Explosion audio blocked", e));
+      }
+    }
+  }, [gameState, score]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+      return () => clearInterval(timer);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      setGameState('result');
+    }
+  }, [gameState, timeLeft]);
+
+  const startGame = () => {
+    const shuffled = [...triviaQuestions].sort(() => Math.random() - 0.5);
+    setQuestions(shuffled);
+    setCurrentIndex(0);
+    setTimeLeft(20);
+    setScore(0);
+    setGameState('playing');
+    setFeedback(null);
+  };
+
+  const handleAnswer = (optionId: string, isCorrect: boolean) => {
+    if (feedback) return;
+
+    // Play sounds
+    const correctAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+    const wrongAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2959/2959-preview.mp3');
+    
+    if (isCorrect) {
+      correctAudio.play().catch(e => console.log('Audio play failed:', e));
+    } else {
+      wrongAudio.play().catch(e => console.log('Audio play failed:', e));
+    }
+
+    setFeedback({ id: optionId, correct: isCorrect });
+    
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+      setTimeLeft(prev => prev + 10);
+    } else {
+      setTimeLeft(prev => Math.max(0, prev - 5));
+    }
+
+    setTimeout(() => {
+      setFeedback(null);
+      if (currentIndex < questions.length - 1 && timeLeft > 0) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setGameState('result');
+      }
+    }, 1500);
+  };
+
+  const currentQuestion = questions[currentIndex];
+
+  return (
+    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-[#000046] to-[#1CB5E0] rounded-[3rem] p-8 md:p-12 shadow-2xl border-4 border-yellow-500 relative overflow-hidden min-h-[600px] flex flex-col justify-center items-center text-white">
+      {/* Background patterns */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      </div>
+
+      {gameState === 'start' && (
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center relative z-10 flex flex-col items-center">
+          <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(234,179,8,0.5)] border-4 border-white animate-pulse">
+            <Trophy size={48} className="text-blue-900" />
+          </div>
+          <h2 className="text-4xl md:text-6xl font-display font-black mb-4 tracking-tighter uppercase italic">Scape <span className="text-yellow-400">Quiz</span></h2>
+          <p className="text-lg md:text-xl text-white/80 max-w-lg mb-8 font-medium">Só quem tem conhecimento chega até a saida, será que você consegue chegar ao final?</p>
+          <div className="grid grid-cols-2 gap-4 mb-10 w-full max-w-sm">
+             <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                <span className="block text-[10px] font-black text-yellow-400 uppercase mb-1">Acerto</span>
+                <span className="text-sm font-bold">+10s</span>
+             </div>
+             <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+                <span className="block text-[10px] font-black text-red-400 uppercase mb-1">Erro</span>
+                <span className="text-sm font-bold">-5s</span>
+             </div>
+          </div>
+          <button 
+            onClick={startGame} 
+            className="flex items-center justify-center gap-3 px-10 py-5 bg-yellow-400 hover:bg-yellow-500 text-black font-display font-black text-2xl italic uppercase tracking-tighter rounded-2xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all hover:scale-105 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+          >
+            <PlayIcon size={28} fill="currentColor" />
+            VAMOS JOGAR!
+          </button>
+        </motion.div>
+      )}
+
+      {gameState === 'playing' && currentQuestion && (
+        <div className="w-full flex-1 flex flex-col relative z-10">
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">Pergunta {currentIndex + 1} de {questions.length}</span>
+              <div className="h-1.5 w-48 bg-white/10 rounded-full overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }} className="h-full bg-yellow-500" />
+              </div>
+            </div>
+            <div className={`px-6 py-3 rounded-2xl border-2 backdrop-blur-xl flex items-center gap-3 shadow-xl transition-colors ${timeLeft < 10 ? 'bg-red-500/30 border-red-500 text-red-500 animate-pulse' : 'bg-white/10 border-white/20'}`}>
+              <Clock size={24} className={timeLeft < 10 ? 'animate-spin-slow' : ''} />
+              <span className="text-2xl md:text-4xl font-mono font-black italic">00:{timeLeft.toString().padStart(2, '0')}</span>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-center flex-1">
+            <motion.div key={currentIndex} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="aspect-square bg-white rounded-[2rem] overflow-hidden shadow-2xl relative border-4 border-white/20">
+               <img src={currentQuestion.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            </motion.div>
+
+            <div className="space-y-4">
+              <h3 className="text-xl md:text-2xl font-display font-black leading-tight mb-6">{currentQuestion.question}</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {currentQuestion.options.map((opt) => {
+                  const isSelected = feedback?.id === opt.id;
+                  const isCorrect = opt.isCorrect;
+                  const showResult = feedback !== null;
+                  
+                  let bgColor = "bg-white/10 hover:bg-white/20 border-white/20";
+                  if (showResult) {
+                    if (isCorrect) bgColor = "bg-green-500 border-green-300 shadow-[0_0_20px_rgba(34,197,94,0.4)]";
+                    else if (isSelected) bgColor = "bg-red-500 border-red-300 shadow-[0_0_20px_rgba(239,68,68,0.4)]";
+                  }
+
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleAnswer(opt.id, isCorrect)}
+                      disabled={showResult}
+                      className={`w-full p-4 md:p-5 rounded-2xl border-2 text-left flex items-center gap-4 transition-all duration-300 group ${bgColor} ${!showResult && 'hover:-translate-y-1'}`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black italic ${showResult && isCorrect ? 'bg-white text-green-600' : 'bg-yellow-500 text-blue-900'}`}>
+                        {opt.id}
+                      </div>
+                      <span className="text-sm md:text-base font-bold flex-1">{opt.text}</span>
+                      {showResult && isCorrect && <CheckCircle2 size={24} className="text-white" />}
+                      {showResult && isSelected && !isCorrect && <X size={24} className="text-white" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState === 'result' && (() => {
+        const percentage = Math.round((score / triviaQuestions.length) * 100);
+        return (
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 flex flex-col items-center">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-2xl border-4 border-white ${percentage >= 70 ? 'bg-green-500' : 'bg-red-500'}`}>
+              {percentage >= 70 ? (percentage === 100 ? <Award size={56} className="text-white" /> : <CheckCircle2 size={56} className="text-white" />) : <XCircle size={56} className="text-white" />}
+            </div>
+            
+            <h2 className="text-4xl md:text-6xl font-display font-black mb-2 uppercase tracking-tighter italic">
+              {percentage === 100 ? 'EXCELÊNCIA TOTAL!' : (percentage >= 70 ? 'PARABÉNS!' : 'FIM DE JOGO')}
+            </h2>
+            
+            {percentage >= 70 && (
+              <p className="text-xl md:text-2xl font-bold text-yellow-300 mb-4 uppercase italic tracking-tighter">
+                {percentage === 100 ? 'Incrível! Você é um mestre da segurança!' : 'Muito bem! Você conhece os protocolos!'}
+              </p>
+            )}
+
+            <p className="text-lg md:text-xl font-bold mb-8 text-white/90">
+              Você acertou <span className="text-yellow-400 text-3xl md:text-4xl px-2">{score}</span> de {triviaQuestions.length} perguntas!
+            </p>
+            
+            <div className="bg-white/10 backdrop-blur-md p-8 rounded-[2rem] border border-white/20 mb-10 w-full max-w-sm">
+               <div className="flex justify-between items-center mb-4">
+                  <span className="text-sm font-black uppercase text-white/50 tracking-widest">Desempenho</span>
+                  <span className="text-lg font-bold">{percentage}%</span>
+               </div>
+               <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} className={`h-full ${percentage >= 70 ? 'bg-green-500' : 'bg-red-500'}`} />
+               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-6 w-full justify-center px-4">
+              <button 
+                onClick={startGame} 
+                className="flex items-center justify-center gap-2 px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-black font-black text-sm italic uppercase tracking-tight rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:scale-105 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                <RotateCcw size={20} strokeWidth={3} />
+                TENTAR DE NOVO
+              </button>
+              <button 
+                onClick={() => setGameState('start')} 
+                className="flex items-center justify-center gap-2 px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-black font-black text-sm italic uppercase tracking-tight rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:scale-105 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                <Home size={20} strokeWidth={3} />
+                MENU
+              </button>
+            </div>
+          </motion.div>
+        );
+      })()}
+    </div>
+  );
+};
+
 const SeriousGames = () => {
   return (
     <section id="games" className="py-12 px-6 md:px-12 bg-brand-surface relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-accent/20 to-transparent" />
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-8">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-brand-text mb-2 tracking-tight italic uppercase">SOS Scape Point</h2>
+        <div className="text-center mb-12">
+           <h2 className="font-display text-4xl md:text-5xl font-black text-brand-text mb-4 tracking-tighter uppercase italic">SOS <span className="text-brand-accent">Scape Point</span></h2>
+           <p className="text-brand-text-muted max-w-xl mx-auto">Enfrente cenários reais de emergência e aprenda as rotas de fuga corretas através de desafios interativos.</p>
         </div>
 
         <div>
@@ -1151,57 +1782,16 @@ const SeriousGames = () => {
   );
 };
 
-const Tutorials = () => {
+const SegurancaShow = () => {
   return (
-    <section id="tutorials" className="section-padding bg-brand-bg">
+    <section id="show" className="py-20 px-6 md:px-12 bg-brand-bg relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
       <div className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="font-display text-4xl font-bold text-brand-text mb-6">Tutoriais: Guia de Uso</h2>
-            <p className="text-lg text-brand-text-muted mb-8">
-              Aprenda a tirar o máximo proveito da nossa plataforma. Do diagnóstico inicial ao feedback personalizado.
-            </p>
-            
-            <div className="space-y-8 mb-10">
-              {[
-                { step: "01", title: "Diagnóstico Inicial", desc: "Avaliação rápida do seu nível de conhecimento atual." },
-                { step: "02", title: "Navegação no Game", desc: "Controles intuitivos e objetivos claros em cada cenário." },
-                { step: "03", title: "Feedback Imediato", desc: "Relatórios detalhados após cada partida para melhoria contínua." }
-              ].map((item, i) => (
-                <div key={i} className="flex gap-6">
-                  <span className="text-3xl font-display font-bold text-brand-accent/30">{item.step}</span>
-                  <div>
-                    <h4 className="text-xl font-bold text-brand-text mb-2">{item.title}</h4>
-                    <p className="text-brand-text-muted">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="relative rounded-3xl overflow-hidden aspect-video bg-brand-surface border border-brand-border flex items-center justify-center group cursor-pointer"
-          >
-            <img 
-              src="https://images.unsplash.com/photo-1492533212284-7568756571b1?auto=format&fit=crop&q=80&w=1000" 
-              alt="Video Tutorial" 
-              className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700"
-              referrerPolicy="no-referrer"
-            />
-            <div className="relative z-10 text-center">
-              <PlayCircle size={80} className="text-brand-accent mb-4 mx-auto group-hover:scale-110 transition-transform" />
-              <p className="text-brand-text font-bold text-xl">Como navegar no seu Serious Game</p>
-              <p className="text-brand-text-muted text-sm">Assistir vídeo (4:20)</p>
-            </div>
-          </motion.div>
+        <div className="text-center mb-12">
+           <h2 className="font-display text-4xl md:text-5xl font-black text-brand-text mb-4 tracking-tighter uppercase italic">SOS Scape <span className="text-yellow-500">Point Show</span></h2>
+           <p className="text-brand-text-muted max-w-xl mx-auto">Coloque seu conhecimento à prova em um formato de auditório eletrizante. Responda rápido ou perca tempo!</p>
         </div>
+        <SegurancaShowGame />
       </div>
     </section>
   );
@@ -1222,15 +1812,6 @@ const Footer = () => {
               <a href="#" className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-text hover:text-brand-accent transition-colors"><Linkedin size={20} /></a>
               <a href="#" className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-text hover:text-brand-accent transition-colors"><Twitter size={20} /></a>
             </div>
-          </div>
-
-          <div>
-            <h4 className="text-brand-text font-bold mb-6">Navegação</h4>
-            <ul className="space-y-4 text-brand-text-muted">
-              <li><a href="#home" className="hover:text-brand-accent transition-colors">Início</a></li>
-              <li><a href="#games" className="hover:text-brand-accent transition-colors">Jogos Educativos</a></li>
-              <li><a href="#tutorials" className="hover:text-brand-accent transition-colors">Tutoriais</a></li>
-            </ul>
           </div>
 
           <div>
@@ -1292,8 +1873,6 @@ export default function App() {
         <SafetyTips />
         
         <SeriousGames />
-
-        <Tutorials />
       </main>
 
       <Footer />
