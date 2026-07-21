@@ -410,7 +410,7 @@ const FireSafetyMasterGame = () => {
           type: 'scene',
           title: 'Alarme!',
           description: 'Sinal dispara. Corredor com fumaça.',
-          goal: 'Sair da sala pela rota segura.',
+          goal: 'Saia da sala pela rota segura.',
           image: '/assets/escola.png',
           btnText: 'Avançar'
         },
@@ -418,7 +418,7 @@ const FireSafetyMasterGame = () => {
           type: 'enigma',
           id: 'extinguisher',
           title: 'Extintor',
-          question: 'Extintor ideal para papel e madeira?',
+          question: 'Qual extintor é o ideal para papel e madeira?',
           options: [
             { id: '1', name: 'Água', isCorrect: true, icon: <Droplets /> },
             { id: '2', name: 'Pó Químico', isCorrect: false, icon: <Zap /> },
@@ -426,13 +426,13 @@ const FireSafetyMasterGame = () => {
           ],
           explanation: 'Incêndio Classe A ocorre em materiais sólidos (papel, madeira) que deixam brasas e cinzas. O resfriamento com água é o método mais eficaz.',
           image: '/assets/escola.png',
-          hotspot: { x: 65, y: 65, label: 'Extintor', width: 150, height: 150, hideVisual: true }
+          hotspot: { x: 65, y: 65, label: 'Extintor', width: 100, height: 200, hideVisual: true }
         },
         {
           type: 'enigma',
           id: 'door',
           title: 'A Porta',
-          question: 'Fumaça densa: por que devemos se deslocar agachado?',
+          question: 'Siga a sinalização de orientação e salvamento, ha muita fumaça porque devemos se deslocar agachado?',
           options: [
             { id: '1', name: 'Para ir mais rápido', isCorrect: false, icon: <PlayCircle /> },
             { id: '2', name: 'Ar frio é mais denso e fica no chão', isCorrect: true, icon: <Users /> },
@@ -440,7 +440,7 @@ const FireSafetyMasterGame = () => {
           ],
           explanation: 'O calor torna a fumaça menos densa, fazendo-a subir. O ar mais frio, limpo e rico em oxigênio permanece próximo ao chão.',
           image: '/assets/escolaInicio.png',
-          hotspot: { x: 70, y: 60, label: 'Corredor', width: 200, height: 200, hideVisual: true }
+          hotspot: { x: 72, y: 60, label: 'Corredor', width: 250, height: 100, hideVisual: true }
         },
         {
           type: 'enigma',
@@ -454,7 +454,7 @@ const FireSafetyMasterGame = () => {
           ],
           explanation: 'A barra antipânico deve ser empurrada. Ela é projetada para abrir instantaneamente com o peso do corpo, facilitando a evacuação rápida.',
           image: '/assets/escolaSaida.png',
-          hotspot: { x: 80, y: 30, label: 'Porta', width: 150, height: 150, hideVisual: true }
+          hotspot: { x: 49, y: 58, label: 'Porta', width: 150, height: 150, hideVisual: true }
         }
       ]
     },
