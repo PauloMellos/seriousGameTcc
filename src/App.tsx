@@ -401,16 +401,16 @@ const FireSafetyMasterGame = () => {
       id: 'student',
       name: 'Aluno',
       scenario: 'Escola',
-      description: 'Um dia comum vira um teste de sobrevivência. Saia rápido!',
+      description: 'há um princípio de incêndio no ar-condicionado da sala!',
       icon: <GraduationCap size={40} />,
       bg: '/assets/escola.png',
-      timeLimit: 40,
+      timeLimit: 60,
       phases: [
         {
           type: 'scene',
           title: 'Alarme!',
-          description: 'Sinal dispara. Corredor com fumaça.',
-          goal: 'Saia da sala pela rota segura.',
+          description: 'Alarme dispara. Corredor com fumaça.',
+          goal: 'há um princípio de incêndio no ar-condicionado da sala!',
           image: '/assets/escola.png',
           btnText: 'Avançar'
         },
@@ -998,8 +998,8 @@ const FireSafetyMasterGame = () => {
                           <Info size={20} className="animate-bounce md:size-[28px]" />
                        </div>
                        <div className="flex-1 min-w-0">
-                          <h4 className="text-base md:text-xl font-display font-black text-brand-text uppercase truncate leading-tight tracking-tight">{currentPhase.goal}</h4>
-                          <p className="text-[10px] md:text-sm text-brand-text-muted font-medium italic line-clamp-2">{currentPhase.description}</p>
+                          <h4 className="text-base md:text-xl font-display font-black text-brand-text uppercase leading-tight tracking-tight">{currentPhase.goal}</h4>
+                          <p className="text-xs md:text-base text-brand-text-muted font-medium italic mt-1 leading-relaxed">{currentPhase.description}</p>
                        </div>
                        <button onClick={() => setShowSceneIntro(false)} className="btn-primary px-4 py-2 text-[9px] md:text-xs uppercase tracking-widest shrink-0">
                           OK
