@@ -1476,7 +1476,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 14,
     question: "Segundo o Anexo B, o código S17 identifica o:",
-    image: "/assets/numerodopavimento.jpg",
+    image: "/assets/pavimento.jpg",
     options: [
       { id: "A", text: "Número do pavimento", isCorrect: true },
       { id: "B", text: "Número do apartamento", isCorrect: false },
@@ -1487,7 +1487,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 15,
     question: "O símbolo triangular com uma caveira (Código A7) indica cuidado com:",
-    image: "/assets/simbolocaveira.jpg",
+    image: "/assets/riscomorte.png",
     options: [
       { id: "A", text: "Risco de morte por queda", isCorrect: false },
       { id: "B", text: "Produtos tóxicos / veneno", isCorrect: true },
@@ -1498,7 +1498,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 16,
     question: "A placa E2 (quadrada vermelha com círculo branco) identifica o:",
-    image: "/assets/placaE2.jpg",
+    image: "/assets/",
     options: [
       { id: "A", text: "Avisador sonoro", isCorrect: false },
       { id: "B", text: "Detector de fumaça", isCorrect: false },
@@ -1509,7 +1509,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 17,
     question: "O símbolo P3 (círculo vermelho com balde cruzado sobre chama) significa:",
-    image: "/assets/proibidoagua.jpg",
+    image: "/assets/proibidoutilizaragua.jpg",
     options: [
       { id: "A", text: "Proibido utilizar água para apagar o fogo", isCorrect: true },
       { id: "B", text: "Local sem abastecimento de água", isCorrect: false },
@@ -1520,7 +1520,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 18,
     question: "A sinalização S27 (boneco na cadeira de rodas em fundo azul) indica:",
-    image: "/assets/sinalizacaos27.jpg",
+    image: "/assets/s27.jpg",
     options: [
       { id: "A", text: "Vaga de estacionamento", isCorrect: false },
       { id: "B", text: "Elevador PCD", isCorrect: false },
@@ -1531,7 +1531,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 19,
     question: "O código E1 identifica o símbolo de quadrada vermelha com corneta branca, que é o:",
-    image: "/assets/avisadorsonoro.jpg",
+    image: "/assets/alarmesonoro.png",
     options: [
       { id: "A", text: "Avisador sonoro do alarme de incêndio", isCorrect: true },
       { id: "B", text: "Alto-falante de avisos", isCorrect: false },
@@ -1542,7 +1542,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 20,
     question: "O que indica a placa N1 com pictogramas verdes e vermelhos?",
-    image: "/assets/placaN1.jpg",
+    image: "/assets/tipodeagentextintor.jpg",
     options: [
       { id: "A", text: "Instruções de abandono de área", isCorrect: false },
       { id: "B", text: "Indicação do tipo de agente extintor e classes de fogo", isCorrect: true },
