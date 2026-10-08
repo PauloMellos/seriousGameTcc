@@ -1344,7 +1344,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 2,
     question: "O símbolo triangular com uma chama preta (Código A2) alerta para:",
-    image: "https://images.unsplash.com/photo-1504194140026-63e8a4d2e7eb?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/riscoincendio.jpg",
     options: [
       { id: "A", text: "Risco de explosão", isCorrect: false },
       { id: "B", text: "Ponto de encontro", isCorrect: false },
@@ -1355,7 +1355,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 3,
     question: "A placa retangular verde com a inscrição 'SAÍDA' (Código S12) indica:",
-    image: "https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/saidaemergencia.jpg",
     options: [
       { id: "A", text: "Saída de serviço", isCorrect: false },
       { id: "B", text: "Atenção: Porta de vidro", isCorrect: false },
@@ -1366,7 +1366,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 4,
     question: "O que indica o símbolo quadrado vermelho com um telefone branco (Código E4)?",
-    image: "https://images.unsplash.com/photo-1520923642038-b4259ace9439?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/telefoneemergencia.jpg",
     options: [
       { id: "A", text: "Telefone público", isCorrect: false },
       { id: "B", text: "Telefone ou interfone de emergência", isCorrect: true },
@@ -1377,7 +1377,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 5,
     question: "O código S24, com setas apontando para o centro de um quadrado verde, representa:",
-    image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/pontoencontro.jpg",
     options: [
       { id: "A", text: "Ponto de encontro", isCorrect: true },
       { id: "B", text: "Elevador de emergência", isCorrect: false },
@@ -1388,7 +1388,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 6,
     question: "A placa P4, afixada em elevadores comuns, traz qual mensagem obrigatória?",
-    image: "https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/proibidoelevadorincendio.jpg",
     options: [
       { id: "A", text: "USE APENAS EM EMERGÊNCIAS", isCorrect: false },
       { id: "B", text: "CAPACIDADE MÁXIMA 10 PESSOAS", isCorrect: false },
@@ -1399,7 +1399,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 7,
     question: "O símbolo triangular com um raio (Código A5) é utilizado em:",
-    image: "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/riscoeletricidade.jpg",
     options: [
       { id: "A", text: "Painéis de disjuntores e subestações", isCorrect: true },
       { id: "B", text: "Áreas de radiação", isCorrect: false },
@@ -1410,7 +1410,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 8,
     question: "O código E5 (quadrado vermelho com cilindro branco) indica a localização de:",
-    image: "https://images.unsplash.com/photo-1621360841013-c7683c659ec6?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/extintorincendio.jpg",
     options: [
       { id: "A", text: "Mangotinho", isCorrect: false },
       { id: "B", text: "Hidrante", isCorrect: false },
@@ -1421,7 +1421,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 9,
     question: "A sinalização C2 (faixa amarela e preta) é utilizada para indicar:",
-    image: "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/sinalizacaoc2.jpg",
     options: [
       { id: "A", text: "Saída final das rotas de fuga", isCorrect: false },
       { id: "B", text: "Indicação de obstáculos ou riscos", isCorrect: true },
@@ -1432,7 +1432,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 10,
     question: "O símbolo S25 (coração branco com raio em fundo verde) identifica o:",
-    image: "https://images.unsplash.com/photo-1516670428252-df97bba108d1?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/desfibrilador.jpg",
     options: [
       { id: "A", text: "Posto de Primeiros Socorros", isCorrect: false },
       { id: "B", text: "Desfibrilador Externo Automático (DEA)", isCorrect: true },
@@ -1443,7 +1443,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 11,
     question: "Placas com o código E8 mostram a letra 'H' branca em fundo vermelho para indicar:",
-    image: "https://images.unsplash.com/photo-1596522354195-e84935836893?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/hidranteincendio.jpg",
     options: [
       { id: "A", text: "Hospital próximo", isCorrect: false },
       { id: "B", text: "Heliponto", isCorrect: false },
@@ -1454,7 +1454,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 12,
     question: "O que indica o símbolo P2 (círculo vermelho com chama cruzada)?",
-    image: "https://images.unsplash.com/photo-1502472545336-6136fa5c05d0?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/proibidochama.jpg",
     options: [
       { id: "A", text: "Proibido produzir chama", isCorrect: true },
       { id: "B", text: "Proibido fumar", isCorrect: false },
@@ -1465,7 +1465,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 13,
     question: "O sinal E19 (retângulo vermelho com borda amarela) serve para sinalizar o:",
-    image: "https://images.unsplash.com/photo-1473186578172-c141e6798ee4?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/cortedeenergia.jpg",
     options: [
       { id: "A", text: "Extintor de pó químico", isCorrect: false },
       { id: "B", text: "Corte de energia", isCorrect: true },
@@ -1476,7 +1476,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 14,
     question: "Segundo o Anexo B, o código S17 identifica o:",
-    image: "https://images.unsplash.com/photo-1551033406-611cf9a28f67?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/numerodopavimento.jpg",
     options: [
       { id: "A", text: "Número do pavimento", isCorrect: true },
       { id: "B", text: "Número do apartamento", isCorrect: false },
@@ -1487,7 +1487,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 15,
     question: "O símbolo triangular com uma caveira (Código A7) indica cuidado com:",
-    image: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/simbolocaveira.jpg",
     options: [
       { id: "A", text: "Risco de morte por queda", isCorrect: false },
       { id: "B", text: "Produtos tóxicos / veneno", isCorrect: true },
@@ -1498,7 +1498,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 16,
     question: "A placa E2 (quadrada vermelha com círculo branco) identifica o:",
-    image: "https://images.unsplash.com/photo-1506302393653-2c1b0ad06431?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/placaE2.jpg",
     options: [
       { id: "A", text: "Avisador sonoro", isCorrect: false },
       { id: "B", text: "Detector de fumaça", isCorrect: false },
@@ -1509,7 +1509,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 17,
     question: "O símbolo P3 (círculo vermelho com balde cruzado sobre chama) significa:",
-    image: "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/proibidoagua.jpg",
     options: [
       { id: "A", text: "Proibido utilizar água para apagar o fogo", isCorrect: true },
       { id: "B", text: "Local sem abastecimento de água", isCorrect: false },
@@ -1520,7 +1520,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 18,
     question: "A sinalização S27 (boneco na cadeira de rodas em fundo azul) indica:",
-    image: "https://images.unsplash.com/photo-1536709082155-276ceb6a67f0?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/sinalizacaos27.jpg",
     options: [
       { id: "A", text: "Vaga de estacionamento", isCorrect: false },
       { id: "B", text: "Elevador PCD", isCorrect: false },
@@ -1531,7 +1531,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 19,
     question: "O código E1 identifica o símbolo de quadrada vermelha com corneta branca, que é o:",
-    image: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/avisadorsonoro.jpg",
     options: [
       { id: "A", text: "Avisador sonoro do alarme de incêndio", isCorrect: true },
       { id: "B", text: "Alto-falante de avisos", isCorrect: false },
@@ -1542,7 +1542,7 @@ const triviaQuestions: TriviaQuestion[] = [
   {
     id: 20,
     question: "O que indica a placa N1 com pictogramas verdes e vermelhos?",
-    image: "https://images.unsplash.com/photo-1502127271810-708092496a79?auto=format&fit=crop&q=80&w=400",
+    image: "/assets/placaN1.jpg",
     options: [
       { id: "A", text: "Instruções de abandono de área", isCorrect: false },
       { id: "B", text: "Indicação do tipo de agente extintor e classes de fogo", isCorrect: true },
